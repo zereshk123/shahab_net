@@ -1,0 +1,244 @@
+
+QWidget {
+    font-family: vazir;
+    background-color: #f7f7f7;
+}
+
+QLabel#auth_label{
+    margin: 50px 0;
+    font-weight: 900;
+    font-size: 20px;
+    color: #333;
+}
+
+QLineEdit#auth_inp, QComboBox#auth_inp{
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 14px;
+    background-color: #fff;
+}
+
+QLineEdit#auth_inp:focus, QComboBox#auth_inp:focus{
+    border: 2px solid #05565e;
+}
+
+QComboBox#auth_inp::drop-down {
+    padding-left: 10px;
+    background-color: transparent;
+    border: none;
+}
+
+QComboBox#auth_inp::down-arrow {
+    image: url('./assets/arrow_down.png');
+    width: 15px;
+    height: 15px;
+}
+
+QPushButton#auth_btn {
+    background-color: #04636c;
+    color: white;
+    border: none;
+    font-size: 15px;
+    padding: 10px 15px;
+    border-radius: 10px;
+}
+
+QPushButton#auth_btn:hover {
+    background-color: #05565e;
+}
+
+
+QMessageBox {
+    color: #333;
+    min-width: 300px;
+}
+
+QMessageBox QLabel {
+    font-size: 14px;
+}
+
+QMessageBox QPushButton {
+    padding: 5px 15px;
+    background-color: #04636c;
+    color: white;
+    font-size: 14px;
+    border-radius: 5px;
+}
+
+QMessageBox QPushButton:hover {
+    background-color: #05565e;
+}
+
+QMessageBox QIcon {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+
+
+
+/* MAIN WINDOW */
+QLabel#welcome_label{
+    font-size: 17px;
+    margin: 50px 0;
+}
+
+QToolBar#toolbar{
+    background-color: #04636c;
+}
+
+QToolBar#toolbar QToolButton{
+    padding: 3px 5px;
+    color: #fff;
+    background-color: #04636c;
+    border: none;
+}
+
+QToolBar#toolbar QToolButton:hover{
+    background-color: #05565e;
+}
+
+QPushButton#home_btn{
+    min-width: 250px;
+    background-color: #04636c;
+    color: #fff;
+    border: 2px solid #04636c;
+    padding: 20px 0;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+QPushButton#home_btn:hover{
+    background-color: #05565e;
+}
+
+
+/* ADD FRIEND WINDOW */
+QLabel#titr_label{
+    margin: 20px 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+QLabel#label{
+    font-size: 15px;
+}
+
+QLineEdit#inp{
+    padding: 8px;
+    font-size: 13px;
+    background-color: #fff;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+}
+
+QLineEdit#inp:focus{
+    border: 2px solid #05565e;
+}
+
+QTextEdit#inp{
+    padding: 8px;
+    font-size: 13px;
+    background-color: #fff;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+}
+
+QTextEdit#inp:focus{
+    border: 2px solid #05565e;
+}
+
+QPushButton#send_re_btn{
+    padding: 8px;
+    background-color: #04636c;
+    color: white;
+    border: 2px solid #04636c;
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+QPushButton#send_re_btn:hover{
+    border-color: #05565e;
+    background-color: #05565e;
+}
+
+QFrame#user_box, QFrame#friend_box, QFrame#frame{
+    padding: 10px 5px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background-color: #f4f4f4;
+}
+
+QFrame#user_box:hover, QFrame#friend_box:hover, QFrame#frame:hover{
+    border: 3px solid #04636c;
+}
+
+QLabel#info_label{
+    font-size: 12px;
+}
+
+QFrame#msg_box{
+    padding: 5px 3px;
+    border: 2px solid #ccc;
+    border-radius: 15px;
+    background-color: #f4f4f4;
+    font-size: 13px;
+}
+
+QFrame#msg_box:hover{
+    border-color: #05565e;
+}
+
+QLabel#reply_label{
+    font-size: 13px;
+    color: #333;
+}
+
+QLabel#reply_label_msg{
+    padding: 5px 10px;
+    border: none;
+    border-radius: 10px;
+    font-size: 11px;
+    color: #fff;
+    background-color: #04636c;
+}
+
+QPushButton#remove_btn{
+    padding: 5px 10px;
+    font-size: 13px;
+    border: none;
+    border-radius: 10px;
+    background-color: #d70000;
+    color: #fff;
+}
+
+QPushButton#remove_btn:hover{
+    background-color: #c50000;
+}
+
+QPushButton#accept_btn{
+    padding: 5px 10px;
+    font-size: 13px;
+    border: none;
+    border-radius: 10px;
+    background-color: #04636c;
+    color: #fff;
+}
+
+QPushButton#accept_btn:hover{
+    background-color: #05565e;
+}
+
+QPushButton#reject_btn{
+    padding: 5px 10px;
+    font-size: 13px;
+    border: none;
+    border-radius: 10px;
+    background-color: #d70000;
+    color: #fff;
+}
+
+QPushButton#reject_btn:hover{
+    background-color: #c50000;
+}
