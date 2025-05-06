@@ -332,21 +332,18 @@ class MainWindow(QMainWindow):
         lyt.addLayout(btn_lyt_2)
 
         btn_lyt_3 = QHBoxLayout()
-        btn_1 = QPushButton("➕ پست جدید")
+        btn_1 = QPushButton("📝 پست های من")
         btn_1.setObjectName("home_btn")
         btn_lyt_3.addWidget(btn_1, stretch=1)
-        btn_2 = QPushButton("🔍 اکسپلور")
+        btn_2 = QPushButton("➕ پست جدید")
         btn_2.setObjectName("home_btn")
         btn_lyt_3.addWidget(btn_2, stretch=1)
         lyt.addLayout(btn_lyt_3)
 
         btn_lyt_4 = QHBoxLayout()
-        btn_1 = QPushButton("📝 پست های من")
+        btn_1 = QPushButton("🔍 اکسپلور")
         btn_1.setObjectName("home_btn")
         btn_lyt_4.addWidget(btn_1, stretch=1)
-        btn_2 = QPushButton("💬 پیام های من")
-        btn_2.setObjectName("home_btn")
-        btn_lyt_4.addWidget(btn_2, stretch=1)
         lyt.addLayout(btn_lyt_4)
 
         widget.setLayout(lyt)
@@ -402,7 +399,7 @@ class MainWindow(QMainWindow):
         return scroll
     
     def __remove_friend(self, friend_id):
-        reply =QMessageBox.question(self, "حذف دوست", "آیا از حذف این دوست اطمینان دارید؟", QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(self, "حذف دوست", "آیا از حذف این دوست اطمینان دارید؟", QMessageBox.Yes | QMessageBox.No)
 
         if reply == QMessageBox.Yes:
             db("DELETE FROM friends WHERE (user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)", (self.user_id, friend_id, friend_id, self.user_id))
@@ -742,6 +739,9 @@ class MainWindow(QMainWindow):
             message_btn.setCursor(Qt.PointingHandCursor)
             message_btn.setStyleSheet("text-align: left;")
 
+            if is_mine:
+                message_btn.clicked.connect(lambda checked, m_id=msg[0]: self.__del_msg(m_id))
+            
             if not is_mine:
                 message_btn.clicked.connect(lambda checked, m_id=msg[0], m_text=msg[3]: self.__prepare_reply(m_id, m_text))
 
@@ -764,6 +764,13 @@ class MainWindow(QMainWindow):
         self.reply_widget.hide()
         self.refe_app(5)
    
+    def __del_msg(self, msg_id):
+        que_res = QMessageBox.question(self, "حذف پیام", "آیا شما مطمئن هستید میخواید این پیام را حذف کنید؟", QMessageBox.Yes | QMessageBox.No)
+
+        if que_res == QMessageBox.Yes:
+            db("DELETE FROM messages WHERE id = ?", (msg_id,))
+            self.load_messages()
+
     def __send_message(self):
         message = self.message_input.toPlainText().strip()
         if self.reply_to_msg_id:
