@@ -2,16 +2,10 @@ import sys
 import re
 import sqlite3
 import json
-import jdatetime
-import pytz
 import datetime
 from PySide6.QtWidgets import *
 from PySide6.QtGui import *
 from PySide6.QtCore import *
-
-iran_tz = pytz.timezone('Asia/Tehran')
-current_time = datetime.datetime.now(iran_tz)
-jdate = jdatetime.datetime.fromgregorian(datetime=current_time)
 
 # read config file
 try:
@@ -297,6 +291,12 @@ class MainWindow(QMainWindow):
         self.chat_page = self.create_chat_page()
         self.stack.addWidget(self.chat_page)
 
+        self.my_post = self.create_my_post()
+        self.stack.addWidget(self.my_post)
+
+        self.new_post = self.create_new_post()
+        self.stack.addWidget(self.new_post)
+
     def home(self):
         user = db("SELECT * FROM users WHERE id = ?", (self.user_id,))
         name = user[0][1]
@@ -334,9 +334,11 @@ class MainWindow(QMainWindow):
         btn_lyt_3 = QHBoxLayout()
         btn_1 = QPushButton("📝 پست های من")
         btn_1.setObjectName("home_btn")
+        btn_1.clicked.connect(lambda: self.go_my_post())
         btn_lyt_3.addWidget(btn_1, stretch=1)
         btn_2 = QPushButton("➕ پست جدید")
         btn_2.setObjectName("home_btn")
+        btn_2.clicked.connect(lambda: self.go_new_post())
         btn_lyt_3.addWidget(btn_2, stretch=1)
         lyt.addLayout(btn_lyt_3)
 
@@ -371,28 +373,36 @@ class MainWindow(QMainWindow):
         friend_label.setAlignment(Qt.AlignCenter)
         lyt.addWidget(friend_label)
 
-        if not friend_list:
-            no_friend_label = QLabel("شما هیچ دوستی ندارید...")
-            no_friend_label.setObjectName("label")
-            no_friend_label.setAlignment(Qt.AlignCenter)
-            lyt.addWidget(no_friend_label)
+        if friend_list:
+            for friend in friend_list:
+                frame = QFrame()
+                frame.setObjectName("friend_box")
+                frame_lyt = QHBoxLayout(frame)
 
-        for friend in friend_list:
-            frame = QFrame()
-            frame.setObjectName("friend_box")
-            frame_lyt = QHBoxLayout(frame)
+                info = QLabel(f"نام: {friend[1]} {friend[2]} | نام کاربری: {friend[3]} | جنسیت: {friend[4]} | شهر: {friend[5]}")
+                info.setObjectName("info_label")
+                frame_lyt.addWidget(info, stretch=1)
 
-            info = QLabel(f"نام: {friend[1]} {friend[2]} | نام کاربری: {friend[3]} | جنسیت: {friend[4]} | شهر: {friend[5]}")
-            info.setObjectName("info_label")
-            frame_lyt.addWidget(info, stretch=1)
+                remove_btn = QPushButton("🗑️ حذف")
+                remove_btn.clicked.connect(lambda _, fid=friend[0]: self.__remove_friend(fid))
+                remove_btn.setObjectName("remove_btn")
+                frame_lyt.addWidget(remove_btn)
 
-            remove_btn = QPushButton("🗑️ حذف")
-            remove_btn.clicked.connect(lambda _, fid=friend[0]: self.__remove_friend(fid))
-            remove_btn.setObjectName("remove_btn")
-            frame_lyt.addWidget(remove_btn)
+                frame.setLayout(frame_lyt)
+                lyt.addWidget(frame)
+        else:
+            img_label = QLabel()
+            pixmap = QPixmap("./assets/empty.png")
+            img_label.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            img_label.setStyleSheet("margin-top: 50px;")
+            img_label.setAlignment(Qt.AlignCenter)
 
-            frame.setLayout(frame_lyt)
-            lyt.addWidget(frame)
+            none_label = QLabel("شما هیچ دوستی ندارید...")
+            none_label.setAlignment(Qt.AlignCenter)
+            none_label.setObjectName("label")
+
+            lyt.addWidget(img_label)
+            lyt.addWidget(none_label)
 
         lyt.addStretch()
         scroll.setWidget(content_widget)
@@ -421,37 +431,45 @@ class MainWindow(QMainWindow):
 
         requests = db("SELECT * FROM friend_requests WHERE receiver_id = ?", (self.user_id,))
 
-        if not requests:
+        if requests:
+            for request in requests:
+                frame = QFrame()
+                frame.setObjectName("frame")
+                frame_lyt = QHBoxLayout(frame)
+
+                user_data = db("SELECT id, name FROM users WHERE id = ?", (request[1],))
+                if user_data and len(user_data) > 0:
+                    user = user_data[0]
+
+                info = QLabel(f"کاربر '{user[1]}' به شما درخواست دوستی داده است")
+                info.setObjectName("info_label")
+                frame_lyt.addWidget(info)
+
+                accept_btn = QPushButton("👍 قبول")
+                accept_btn.setObjectName("accept_btn")
+                accept_btn.clicked.connect(lambda: self.__accept_request(user[0]))
+                frame_lyt.addWidget(accept_btn)
+
+                reject_btn = QPushButton("👎 رد")
+                reject_btn.setObjectName("reject_btn")
+                reject_btn.clicked.connect(lambda: self.__reject_request(user[0]))
+                frame_lyt.addWidget(reject_btn)
+
+                frame.setLayout(frame_lyt)
+                lyt.addWidget(frame)
+        else:
+            img_label = QLabel()
+            pixmap = QPixmap("./assets/empty.png")
+            img_label.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            img_label.setStyleSheet("margin-top: 50px;")
+            img_label.setAlignment(Qt.AlignCenter)
+
             none_label = QLabel("هیچ درخواستی برای شما ارسال نشده است...")
-            none_label.setObjectName("label")
             none_label.setAlignment(Qt.AlignCenter)
+            none_label.setObjectName("label")
+
+            lyt.addWidget(img_label)
             lyt.addWidget(none_label)
-
-        for request in requests:
-            frame = QFrame()
-            frame.setObjectName("frame")
-            frame_lyt = QHBoxLayout(frame)
-
-            user_data = db("SELECT id, name FROM users WHERE id = ?", (request[1],))
-            if user_data and len(user_data) > 0:
-                user = user_data[0]
-
-            info = QLabel(f"کاربر '{user[1]}' به شما درخواست دوستی داده است")
-            info.setObjectName("info_label")
-            frame_lyt.addWidget(info)
-
-            accept_btn = QPushButton("👍 قبول")
-            accept_btn.setObjectName("accept_btn")
-            accept_btn.clicked.connect(lambda: self.__accept_request(user[0]))
-            frame_lyt.addWidget(accept_btn)
-
-            reject_btn = QPushButton("👎 رد")
-            reject_btn.setObjectName("reject_btn")
-            reject_btn.clicked.connect(lambda: self.__reject_request(user[0]))
-            frame_lyt.addWidget(reject_btn)
-
-            frame.setLayout(frame_lyt)
-            lyt.addWidget(frame)
 
         lyt.addStretch()
         scroll.setWidget(content_widget)
@@ -597,9 +615,17 @@ class MainWindow(QMainWindow):
         friend_relations = db("SELECT * FROM friends WHERE user_id_1 = ? OR user_id_2 = ?", (self.user_id, self.user_id))
 
         if not friend_relations:
+            img_label = QLabel()
+            pixmap = QPixmap("./assets/empty.png")
+            img_label.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            img_label.setStyleSheet("margin-top: 50px;")
+            img_label.setAlignment(Qt.AlignCenter)
+
             none_label = QLabel("شما هنوز دوستی ندارید...")
             none_label.setObjectName("label")
             none_label.setAlignment(Qt.AlignCenter)
+            
+            lyt.addWidget(img_label)
             lyt.addWidget(none_label)
         else:
             for relation in friend_relations:
@@ -700,7 +726,7 @@ class MainWindow(QMainWindow):
     def open_chat(self, friend_id):
         self.current_chat_friend = friend_id
         friend = db("SELECT * FROM users WHERE id = ?", (friend_id,))[0]
-        self.chat_user_label.setText(f"گفتگو با {friend[1]} {friend[2]} | نام کاربری: {friend[3]}")
+        self.chat_user_label.setText(f"{friend[1]} {friend[2]}")
         
         self.load_messages()
         self.stack.setCurrentIndex(5)
@@ -779,14 +805,109 @@ class MainWindow(QMainWindow):
             reply_id = None
 
         if message:
-            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            db("INSERT INTO messages (sender_id, receiver_id, msg, timestamp, reply_to) VALUES (?, ?, ?, ?, ?)", (self.user_id, self.current_chat_friend, message, current_time, reply_id))
+            db("INSERT INTO messages (sender_id, receiver_id, msg, timestamp, reply_to) VALUES (?, ?, ?, ?, ?)", (self.user_id, self.current_chat_friend, message, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), reply_id))
 
             self.reply_to_msg_id = None
             self.reply_to_msg_txt = None
             self.reply_widget.hide()
             self.message_input.clear()
             self.load_messages()
+
+
+    def create_my_post(self):
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content_widget = QWidget()
+        lyt = QVBoxLayout(content_widget)
+
+        label = QLabel("📝 پست های من")
+        label.setObjectName("titr_label")
+        label.setAlignment(Qt.AlignCenter)
+        lyt.addWidget(label)
+
+        posts = db("SELECT * FROM posts WHERE user_id = ? ORDER BY created_at", (self.user_id,))
+
+        if posts:
+            for post in posts:
+                frame = QFrame()
+                frame_lyt = QVBoxLayout(frame)
+
+                conte = QLabel(post[2])
+                conte.setObjectName("label")
+                conte.setWordWrap(True)
+                frame_lyt.addWidget(conte)
+
+                timestamp = QLabel(post[3])
+                timestamp.setObjectName("date_label")
+                frame_lyt.addWidget(timestamp)
+
+                delete_btn = QPushButton("🗑️ حذف پست")
+                delete_btn.setObjectName("remove_btn")
+                delete_btn.clicked.connect(lambda checked, p_id=post[0]: self.__delete_post(p_id))
+                frame_lyt.addWidget(delete_btn)
+
+                frame.setObjectName("frame")
+                lyt.addWidget(frame)
+        else:
+            img_label = QLabel()
+            pixmap = QPixmap("./assets/empty.png")
+            img_label.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            img_label.setStyleSheet("margin-top: 50px;")
+            img_label.setAlignment(Qt.AlignCenter)
+
+            none_label = QLabel("شما هنوز هیچ پستی ندارید...")
+            none_label.setAlignment(Qt.AlignCenter)
+            none_label.setObjectName("label")
+            
+            lyt.addWidget(img_label)
+            lyt.addWidget(none_label)
+
+        lyt.addStretch()
+        scroll.setWidget(content_widget)
+        return scroll
+
+    def __delete_post(self, post_id):
+        res = QMessageBox.question(self, "ℹ", "آیا شما مطمئن هستید میخواهید این پست را حذف کنید؟", QMessageBox.Yes | QMessageBox.No)
+        
+        if res == QMessageBox.Yes:
+            db("DELETE FROM posts WHERE id = ?", (post_id,))
+
+            self.refe_app(6)
+
+
+    def create_new_post(self):
+        widget = QWidget()
+        lyt = QVBoxLayout(widget)
+
+        label = QLabel("➕ پست جدید")
+        label.setObjectName("titr_label")
+        label.setAlignment(Qt.AlignCenter)
+        lyt.addWidget(label)
+
+        self.post_conte = QTextEdit()
+        self.post_conte.setObjectName("inp")
+        self.post_conte.setPlaceholderText("متن پست را وارد کنید...")
+        lyt.addWidget(self.post_conte)
+
+        btn = QPushButton("➕ ارسال پست")
+        btn.setObjectName("send_re_btn")
+        btn.clicked.connect(lambda: self.__send_post())
+        lyt.addWidget(btn)
+
+        widget.setLayout(lyt)
+        return widget
+
+    def __send_post(self):
+        post_conte = self.post_conte.toPlainText().strip()
+
+        if len(post_conte) < 5:
+            QMessageBox.critical(self, "خطا", "شما باید حداقل 5 حرف برای متن پست خود وارد کنید.")
+            return
+        
+        db("INSERT INTO posts (user_id, content, created_at) VALUES(?, ?, ?)", (self.user_id, post_conte, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+        QMessageBox.information(self, "✅", "پست شما با موفقیت ارسال شد.")
+        self.refe_app(7)
 
 
     def refe_app(self, current_page):
@@ -814,6 +935,18 @@ class MainWindow(QMainWindow):
         new_widget = self.create_chat_list()
         self.stack.insertWidget(4, new_widget)
 
+        old_widget = self.stack.widget(6)
+        self.stack.removeWidget(old_widget)
+        old_widget.deleteLater()
+        new_widget = self.create_my_post()
+        self.stack.insertWidget(6, new_widget)
+
+        old_widget = self.stack.widget(7)
+        self.stack.removeWidget(old_widget)
+        old_widget.deleteLater()
+        new_widget = self.create_new_post()
+        self.stack.insertWidget(7, new_widget)
+
         self.stack.setCurrentIndex(current_page)
 
     def go_home(self):
@@ -833,6 +966,13 @@ class MainWindow(QMainWindow):
 
     def go_chat_list(self):
         self.stack.setCurrentIndex(4)
+
+    def go_my_post(self):
+        self.stack.setCurrentIndex(6)
+
+    def go_new_post(self):
+        self.stack.setCurrentIndex(7)
+
 
     def __logout(self):
                     self.hide()
