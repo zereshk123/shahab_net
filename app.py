@@ -297,6 +297,9 @@ class MainWindow(QMainWindow):
         self.new_post = self.create_new_post()
         self.stack.addWidget(self.new_post)
 
+        self.explore = self.create_explore()
+        self.stack.addWidget(self.explore)
+
     def home(self):
         user = db("SELECT * FROM users WHERE id = ?", (self.user_id,))
         name = user[0][1]
@@ -345,6 +348,7 @@ class MainWindow(QMainWindow):
         btn_lyt_4 = QHBoxLayout()
         btn_1 = QPushButton("🔍 اکسپلور")
         btn_1.setObjectName("home_btn")
+        btn_1.clicked.connect(lambda: self.go_explore())
         btn_lyt_4.addWidget(btn_1, stretch=1)
         lyt.addLayout(btn_lyt_4)
 
@@ -910,6 +914,58 @@ class MainWindow(QMainWindow):
         self.refe_app(7)
 
 
+    def create_explore(self):
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content_widget = QWidget()
+        lyt = QVBoxLayout(content_widget)
+
+        label = QLabel("🔍 اکسپلور")
+        label.setObjectName("titr_label")
+        label.setAlignment(Qt.AlignCenter)
+        lyt.addWidget(label)
+
+        posts = db("SELECT p.*, u.name, u.family, u.username FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC")
+
+        if posts:
+            for post in posts:
+                frame = QFrame()
+                frame_lyt = QVBoxLayout(frame)
+
+                user_info = QLabel(f"👤 {post[4]} {post[5]} - @{post[6]}")
+                user_info.setObjectName("info_label")
+                frame_lyt.addWidget(user_info)
+
+                conte = QLabel(post[2])
+                conte.setObjectName("label")
+                conte.setWordWrap(True)
+                frame_lyt.addWidget(conte)
+
+                timestamp = QLabel(post[3])
+                timestamp.setObjectName("date_label")
+                frame_lyt.addWidget(timestamp)
+
+                frame.setObjectName("frame")
+                lyt.addWidget(frame)
+        else:
+            img_label = QLabel()
+            pixmap = QPixmap("./assets/empty.png")
+            img_label.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            img_label.setStyleSheet("margin-top: 50px;")
+            img_label.setAlignment(Qt.AlignCenter)
+
+            none_label = QLabel("هیچ پستی برای نمایش وجود ندارد...")
+            none_label.setAlignment(Qt.AlignCenter)
+            none_label.setObjectName("label")
+            
+            lyt.addWidget(img_label)
+            lyt.addWidget(none_label)
+
+        lyt.addStretch()
+        scroll.setWidget(content_widget)
+        return scroll
+
+
     def refe_app(self, current_page):
         old_widget = self.stack.widget(1)
         self.stack.removeWidget(old_widget)
@@ -972,6 +1028,9 @@ class MainWindow(QMainWindow):
 
     def go_new_post(self):
         self.stack.setCurrentIndex(7)
+
+    def go_explore(self):
+        self.stack.setCurrentIndex(8)
 
 
     def __logout(self):
