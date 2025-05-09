@@ -253,6 +253,9 @@ class MainWindow(QMainWindow):
         self.reply_to_msg_id = None
         self.reply_to_msg_txt = None
 
+        user = db("SELECT username FROM users WHERE id = ?", (self.user_id,))
+        self.username = user[0][0] if user else ""
+
         file = QFile("./style.css")
         if file.open(QFile.ReadOnly | QFile.Text):
             text_stream = QTextStream(file)
@@ -299,6 +302,13 @@ class MainWindow(QMainWindow):
 
         self.explore = self.create_explore()
         self.stack.addWidget(self.explore)
+
+        if self.username == "admin":
+            self.admin_chat_list = self.create_admin_chat_list()
+            self.stack.addWidget(self.admin_chat_list)
+
+            self.admin_chat_page = self.create_admin_chat_page()
+            self.stack.addWidget(self.admin_chat_page)
 
     def home(self):
         user = db("SELECT * FROM users WHERE id = ?", (self.user_id,))
@@ -351,6 +361,13 @@ class MainWindow(QMainWindow):
         btn_1.clicked.connect(lambda: self.go_explore())
         btn_lyt_4.addWidget(btn_1, stretch=1)
         lyt.addLayout(btn_lyt_4)
+
+        if self.username == "admin":
+            btn_admin_msgs = QPushButton("📨 پیام‌های کاربران")
+            btn_admin_msgs.setObjectName("home_btn")
+            btn_admin_msgs.clicked.connect(lambda: self.stack.setCurrentIndex(9))
+            lyt.addWidget(btn_admin_msgs)
+
 
         widget.setLayout(lyt)
         return widget
@@ -966,6 +983,135 @@ class MainWindow(QMainWindow):
         return scroll
 
 
+    def create_admin_chat_list(self):
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content_widget = QWidget()
+        lyt = QVBoxLayout(content_widget)
+
+        label = QLabel("📨 گفتگوهای کاربران")
+        label.setObjectName("titr_label")
+        label.setAlignment(Qt.AlignCenter)
+        lyt.addWidget(label)
+
+        pairs = db("""
+            SELECT DISTINCT 
+                CASE WHEN sender_id < receiver_id THEN sender_id ELSE receiver_id END AS uid1,
+                CASE WHEN sender_id < receiver_id THEN receiver_id ELSE sender_id END AS uid2
+            FROM messages
+        """)
+
+        for uid1, uid2 in pairs:
+            user1 = db("SELECT name, family FROM users WHERE id = ?", (uid1,))
+            user2 = db("SELECT name, family FROM users WHERE id = ?", (uid2,))
+
+            if not user1 or not user2:
+                continue
+
+            frame = QFrame()
+            frame.setObjectName("friend_box")
+            frame_lyt = QHBoxLayout(frame)
+
+            info = QLabel(f"{user1[0][0]} {user1[0][1]} ⇄ {user2[0][0]} {user2[0][1]}")
+            info.setObjectName("info_label")
+            frame_lyt.addWidget(info, stretch=1)
+
+            btn = QPushButton("💬 مشاهده چت")
+            btn.setObjectName("send_re_btn")
+            btn.clicked.connect(lambda _, u1=uid1, u2=uid2: self.open_admin_chat(u1, u2))
+            frame_lyt.addWidget(btn)
+
+            frame.setLayout(frame_lyt)
+            lyt.addWidget(frame)
+
+        lyt.addStretch()
+        scroll.setWidget(content_widget)
+        return scroll
+
+    def create_admin_chat_page(self):
+        widget = QWidget()
+        self.admin_chat_layout = QVBoxLayout(widget)
+
+        header = QWidget()
+        header_lyt = QHBoxLayout(header)
+        self.admin_chat_user_label = QLabel()
+        self.admin_chat_user_label.setObjectName("titr_label")
+        header_lyt.addWidget(self.admin_chat_user_label)
+
+        back_btn = QPushButton("🔙 بازگشت")
+        back_btn.setObjectName("send_re_btn")
+        back_btn.clicked.connect(lambda: self.stack.setCurrentIndex(9))
+        header_lyt.addWidget(back_btn)
+        self.admin_chat_layout.addWidget(header)
+
+        self.admin_messages_area = QScrollArea()
+        self.admin_messages_area.setWidgetResizable(True)
+        self.admin_messages_widget = QWidget()
+        self.admin_messages_lyt = QVBoxLayout(self.admin_messages_widget)
+        self.admin_messages_lyt.addStretch()
+        self.admin_messages_area.setWidget(self.admin_messages_widget)
+
+        self.admin_chat_layout.addWidget(self.admin_messages_area)
+        return widget
+
+    def open_admin_chat(self, user1_id, user2_id):
+        self.admin_chat_user1 = user1_id
+        self.admin_chat_user2 = user2_id
+
+        user1 = db("SELECT name, family FROM users WHERE id = ?", (user1_id,))[0]
+        user2 = db("SELECT name, family FROM users WHERE id = ?", (user2_id,))[0]
+        self.admin_chat_user_label.setText(f"👥 {user1[0]} {user1[1]} ⇄ {user2[0]} {user2[1]}")
+
+        self.load_admin_messages()
+        self.stack.setCurrentIndex(10)
+
+    def load_admin_messages(self):
+        while self.admin_messages_lyt.count() > 1:
+            item = self.admin_messages_lyt.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        messages = db("""
+            SELECT m.*, u.name, u.family FROM messages m
+            JOIN users u ON m.sender_id = u.id
+            WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
+            ORDER BY timestamp
+        """, (self.admin_chat_user1, self.admin_chat_user2, self.admin_chat_user2, self.admin_chat_user1))
+
+        for msg in messages:
+            is_left = msg[1] == self.admin_chat_user1
+
+            outer_frame = QFrame()
+            outer_lyt = QHBoxLayout(outer_frame)
+            outer_lyt.setAlignment(Qt.AlignLeft if is_left else Qt.AlignRight)
+
+            msg_frame = QFrame()
+            msg_frame.setObjectName("msg_box")
+            msg_lyt = QVBoxLayout(msg_frame)
+            msg_lyt.setContentsMargins(8, 4, 8, 4)
+
+            sender_name = f"{msg[6]} {msg[7]}"
+            name_lbl = QLabel(f"👤 {sender_name}")
+            name_lbl.setObjectName("reply_label_msg")
+            msg_lyt.addWidget(name_lbl)
+
+            if msg[5]:
+                reply = db("SELECT msg FROM messages WHERE id = ?", (msg[5],))
+                if reply:
+                    reply_lbl = QLabel(f"🔁 پاسخ به: {reply[0][0][:40]}...")
+                    reply_lbl.setObjectName("reply_label_msg")
+                    msg_lyt.addWidget(reply_lbl)
+
+            content = QLabel(msg[3])
+            content.setWordWrap(True)
+            content.setObjectName("label")
+            msg_lyt.addWidget(content)
+
+            outer_lyt.addWidget(msg_frame)
+            self.admin_messages_lyt.insertWidget(self.admin_messages_lyt.count() - 1, outer_frame)
+
+
+
     def refe_app(self, current_page):
         old_widget = self.stack.widget(1)
         self.stack.removeWidget(old_widget)
@@ -1032,6 +1178,8 @@ class MainWindow(QMainWindow):
     def go_explore(self):
         self.stack.setCurrentIndex(8)
 
+    def go_admin_messages(self):
+        self.stack.setCurrentIndex(9)
 
     def __logout(self):
                     self.hide()
